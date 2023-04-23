@@ -64,7 +64,7 @@ const VoiceStep = ({
   >("pending");
 
   return (
-    <div className="text-center  w-full ">
+    <div className="text-center w-full">
       <h1 className="text-6xl font-japanese mb-8 flex justify-center">
         {word.jap.split("").map((caracter, index) => (
           <div className="relative" key={index}>
