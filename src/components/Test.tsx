@@ -1,6 +1,10 @@
 import { Ear } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { speak } from "./speech";
+import {
+  SoundsContext,
+  useSounds,
+} from "./contexts/SoundsContext/SoundsContext";
 
 const Test = () => {
   const [currentWord, setCurrentWord] = useState<{
@@ -12,31 +16,32 @@ const Test = () => {
   const scoresRef = useRef<Record<string, number>>({});
 
   return (
-    <VoiceStep
-      key={currentWord.romaji}
-      word={currentWord}
-      handleNext={(score) => {
-        console.log(currentWord.id, score);
+    <SoundsContext>
+      <VoiceStep
+        key={currentWord.romaji}
+        word={currentWord}
+        handleNext={(score) => {
+          if (!scoresRef.current[currentWord.id])
+            scoresRef.current[currentWord.id] = 0;
 
-        if (!scoresRef.current[currentWord.id]) {
-          scoresRef.current[currentWord.id] = 0;
-        }
+          scoresRef.current[currentWord.id] = Math.max(
+            0,
+            scoresRef.current[currentWord.id] + score
+          );
 
-        scoresRef.current[currentWord.id] = Math.max(
-          0,
-          scoresRef.current[currentWord.id] + score
-        );
-
-        console.log(scoresRef.current);
-
-        setCurrentWord(pickRandomWord(scoresRef.current));
-      }}
-    />
+          setCurrentWord(pickRandomWord(currentWord.id, scoresRef.current));
+        }}
+      />
+    </SoundsContext>
   );
 
-  function pickRandomWord(scores: Record<string, number>) {
+  function pickRandomWord(
+    currentWordId: string,
+    scores: Record<string, number>
+  ) {
     const list = narutoCharaters
       .filter(({ id }) => !scores[id] || scores[id] < 4)
+      .filter(({ id }) => id !== currentWordId)
       .slice(0, 4);
 
     return getRandomElementFromArray(list);
@@ -59,57 +64,76 @@ const VoiceStep = ({
   };
   handleNext: (score: number) => void;
 }) => {
+  const sounds = useSounds();
+
   const [state, setState] = useState<
     "pending" | "listening" | "success" | "failed"
   >("pending");
 
   return (
-    <div className="text-center w-full">
-      <h1 className="text-6xl font-japanese mb-8 flex justify-center">
-        {word.jap.split("").map((caracter, index) => (
-          <div className="relative" key={index}>
-            {state === "failed" && (
-              <div className="absolute bottom-full text-xl text-center w-full">
-                {getCaracterRomaji(caracter)}
-              </div>
-            )}
-            {caracter}
-          </div>
-        ))}
-      </h1>
+    <div className="text-center w-full flex flex-col">
+      <div className="flex-1 flex items-center justify-center mb-5">
+        <h1 className="text-6xl font-japanese mb-8 flex justify-center">
+          {word.jap.split("").map((caracter, index) => (
+            <div className="relative" key={index}>
+              {state === "failed" && (
+                <div className="absolute bottom-full text-xl text-center w-full">
+                  {getCaracterRomaji(caracter)}
+                </div>
+              )}
+              {caracter}
+            </div>
+          ))}
+        </h1>
+      </div>
 
       <div className="flex">
         {state === "failed" || state === "success" ? (
           <>
             <button
+              className=" flex-1"
               onClick={() => {
+                speak(word.jap);
+                sounds.play("pop");
+              }}
+            >
+              Ecouter
+            </button>
+
+            <button
+              onClick={() => {
+                sounds.play("pop");
                 handleNext(state === "success" ? 1 : -1);
               }}
               className={`${
                 state === "success" ? "bg-green-600" : "bg-red-600"
-              } rounded h-10 text-center mr-6 flex-1`}
+              } rounded h-16 text-center ml-6 flex-1`}
             >
               {state === "success" ? "Bravo !" : "Oups, "} Continuer
-            </button>
-
-            <button
-              className=" flex-1"
-              onClick={() => {
-                speak(word.jap);
-              }}
-            >
-              Ecouter
             </button>
           </>
         ) : (
           <>
             <button
+              className="flex-1 h-16"
+              onClick={() => {
+                speak(word.jap);
+                setState("failed");
+                sounds.play("pop");
+              }}
+            >
+              Je ne sais pas
+            </button>
+
+            <button
               className={`${
                 state === "listening" ? "bg-sky-500" : "bg-sky-400"
-              } rounded h-10  flex-1 text-center mr-6`}
+              } rounded h-16  flex-1 text-center ml-6`}
               onClick={() => {
                 if (!["pending", "failed"].includes(state)) return;
                 setState("listening");
+
+                sounds.play("pop");
 
                 const SpeechRecognition =
                   // @ts-ignore
@@ -139,6 +163,8 @@ const VoiceStep = ({
 
                   if (katakana === word.jap) {
                     setState("success");
+
+                    sounds.play("success");
                   } else {
                     setState("failed");
 
@@ -150,15 +176,6 @@ const VoiceStep = ({
               }}
             >
               {state === "listening" ? <Ear className="m-auto" /> : "Parler"}
-            </button>
-            <button
-              className=" flex-1"
-              onClick={() => {
-                speak(word.jap);
-                setState("failed");
-              }}
-            >
-              Je ne sais pas
             </button>
           </>
         )}
