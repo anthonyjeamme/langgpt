@@ -4,19 +4,28 @@ import { useState } from "react";
 const Test = () => {
   const currentWord = "ナルト";
 
-  const [success, setSuccess] = useState(false);
   const [isListening, setIsListening] = useState(false);
+
+  const [state, setState] = useState<
+    "pending" | "listening" | "success" | "failed"
+  >("pending");
 
   return (
     <div className="text-center">
       <h1 className="text-6xl font-japanese mb-8">{currentWord}</h1>
       <button
         className={`${
-          success ? "bg-green-600" : isListening ? "bg-red-600" : "bg-sky-500"
+          state === "success"
+            ? "bg-green-600"
+            : state === "failed"
+            ? "bg-red-600"
+            : state === "listening"
+            ? "bg-sky-500"
+            : "bg-sky-400"
         } rounded h-10 w-52 text-center`}
         onClick={() => {
-          if (isListening) return;
-          setIsListening(true);
+          if (!["pending", "failed"].includes(state)) return;
+          setState("listening");
 
           const SpeechRecognition =
             // @ts-ignore
@@ -39,12 +48,13 @@ const Test = () => {
           };
 
           recognition.onend = function () {
-            setIsListening(false);
             if (spokenText === currentWord) {
               console.log("BRAVO ! ");
 
-              setSuccess(true);
+              setState("success");
             } else {
+              setState("failed");
+
               console.log("Oups, vous avez dit", spokenText);
             }
           };
@@ -52,9 +62,11 @@ const Test = () => {
           recognition.start();
         }}
       >
-        {success ? (
+        {state === "success" ? (
           "Bravo"
-        ) : isListening ? (
+        ) : state === "failed" ? (
+          "Oups, réessayer"
+        ) : state === "listening" ? (
           <Ear className="m-auto" />
         ) : (
           "Parler"
