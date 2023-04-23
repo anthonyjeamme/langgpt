@@ -64,7 +64,7 @@ const VoiceStep = ({
   >("pending");
 
   return (
-    <div className="text-center">
+    <div className="text-center  w-full ">
       <h1 className="text-6xl font-japanese mb-8 flex justify-center">
         {word.jap.split("").map((caracter, index) => (
           <div className="relative" key={index}>
@@ -78,87 +78,91 @@ const VoiceStep = ({
         ))}
       </h1>
 
-      {state === "failed" || state === "success" ? (
-        <>
-          <button
-            onClick={() => {
-              handleNext(state === "success" ? 1 : -1);
-            }}
-            className={`${
-              state === "success" ? "bg-green-600" : "bg-red-600"
-            } rounded h-10 w-52 text-center mr-6`}
-          >
-            {state === "success" ? "Bravo !" : "Oups, "} Continuer
-          </button>
+      <div className="flex">
+        {state === "failed" || state === "success" ? (
+          <>
+            <button
+              onClick={() => {
+                handleNext(state === "success" ? 1 : -1);
+              }}
+              className={`${
+                state === "success" ? "bg-green-600" : "bg-red-600"
+              } rounded h-10 text-center mr-6 flex-1`}
+            >
+              {state === "success" ? "Bravo !" : "Oups, "} Continuer
+            </button>
 
-          <button
-            onClick={() => {
-              speak(word.jap);
-            }}
-          >
-            Ecouter
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            className={`${
-              state === "listening" ? "bg-sky-500" : "bg-sky-400"
-            } rounded h-10 w-52 text-center mr-6`}
-            onClick={() => {
-              if (!["pending", "failed"].includes(state)) return;
-              setState("listening");
+            <button
+              className=" flex-1"
+              onClick={() => {
+                speak(word.jap);
+              }}
+            >
+              Ecouter
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className={`${
+                state === "listening" ? "bg-sky-500" : "bg-sky-400"
+              } rounded h-10  flex-1 text-center mr-6`}
+              onClick={() => {
+                if (!["pending", "failed"].includes(state)) return;
+                setState("listening");
 
-              const SpeechRecognition =
-                // @ts-ignore
-                window.SpeechRecognition || webkitSpeechRecognition;
+                const SpeechRecognition =
+                  // @ts-ignore
+                  window.SpeechRecognition || webkitSpeechRecognition;
 
-              const recognition = new SpeechRecognition();
-              recognition.lang = "ja-JP";
-              recognition.continuous = true;
-              recognition.interimResults = true;
+                const recognition = new SpeechRecognition();
+                recognition.lang = "ja-JP";
+                recognition.continuous = true;
+                recognition.interimResults = true;
 
-              let spokenText = "";
+                let spokenText = "";
 
-              recognition.onresult = function (event: any) {
-                const last = event.results.length - 1;
-                spokenText = hiraganaToKatakana(
-                  event.results[last][0].transcript
-                );
+                recognition.onresult = function (event: any) {
+                  const last = event.results.length - 1;
+                  spokenText = hiraganaToKatakana(
+                    event.results[last][0].transcript
+                  );
 
-                console.log(spokenText);
-                if (spokenText.length === word.jap.length) {
-                  recognition.stop();
-                }
-              };
+                  console.log(spokenText);
+                  if (spokenText.length === word.jap.length) {
+                    recognition.stop();
+                  }
+                };
 
-              recognition.onend = function () {
-                const katakana = spokenText;
+                recognition.onend = function () {
+                  const katakana = spokenText;
 
-                if (katakana === word.jap) {
-                  setState("success");
-                } else {
-                  setState("failed");
+                  if (katakana === word.jap) {
+                    setState("success");
+                  } else {
+                    setState("failed");
 
-                  console.log("Oups, vous avez dit", katakana);
-                }
-              };
+                    console.log("Oups, vous avez dit", katakana);
+                  }
+                };
 
-              recognition.start();
-            }}
-          >
-            {state === "listening" ? <Ear className="m-auto" /> : "Parler"}
-          </button>
-          <button
-            onClick={() => {
-              speak(word.jap);
-              setState("failed");
-            }}
-          >
-            Je ne sais pas
-          </button>
-        </>
-      )}
+                recognition.start();
+              }}
+            >
+              {state === "listening" ? <Ear className="m-auto" /> : "Parler"}
+            </button>
+            <button
+              className=" flex-1"
+              onClick={() => {
+                speak(word.jap);
+                setState("failed");
+              }}
+            >
+              Je ne sais pas
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
