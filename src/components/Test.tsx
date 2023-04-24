@@ -7,13 +7,12 @@ import {
 } from "./contexts/SoundsContext/SoundsContext";
 
 const Test = () => {
+  const scoresRef = useRef<Record<string, number>>(getScores());
   const [currentWord, setCurrentWord] = useState<{
     id: string;
     jap: string;
     romaji: string;
-  }>(narutoCharaters[0]);
-
-  const scoresRef = useRef<Record<string, number>>({});
+  }>(pickRandomWord("", scoresRef.current));
 
   return (
     <SoundsContext>
@@ -29,11 +28,24 @@ const Test = () => {
             scoresRef.current[currentWord.id] + score
           );
 
+          updateScores(scoresRef.current);
+
           setCurrentWord(pickRandomWord(currentWord.id, scoresRef.current));
         }}
       />
     </SoundsContext>
   );
+
+  function updateScores(scores: Record<string, number>) {
+    localStorage.setItem("scores", JSON.stringify(scores));
+  }
+
+  function getScores() {
+    const score = localStorage.getItem("scores");
+    if (score) return JSON.parse(score);
+
+    return {};
+  }
 
   function pickRandomWord(
     currentWordId: string,
@@ -44,7 +56,22 @@ const Test = () => {
       .filter(({ id }) => id !== currentWordId)
       .slice(0, 4);
 
-    return getRandomElementFromArray(list);
+    const caracters = Array.from(
+      new Set(
+        list.reduce<Array<string>>(
+          (caracters, word) => [...caracters, ...word.jap.split("")],
+          []
+        )
+      )
+    )
+      .map((caracter) => ({
+        id: caracter,
+        jap: caracter,
+        romaji: katakanas.find(({ jap }) => jap === caracter)?.romaji,
+      }))
+      .filter(({ id }) => !scores[id] || scores[id] < 4);
+
+    return getRandomElementFromArray([...list, ...list, ...caracters]);
   }
 };
 export default Test;
